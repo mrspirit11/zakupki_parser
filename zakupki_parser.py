@@ -1,49 +1,72 @@
-import requests, json
+import requests, json, html
 from datetime import datetime
+import pytz
 from bs4 import BeautifulSoup as bs
 import config
 
 class parse_api():
     def __init__(self, params):
-        self.params = params
+        self.params = dict(config.PARAMS)
+        self.params.update(params)
 
-    def get_json(self):
-
-        def _unicode_time_convert(timestamp):
-            if timestamp:
-                ts = int(timestamp)/1000
-                return datetime.utcfromtimestamp(ts).strftime('%d-%m-%Y %H:%M:%S')
-            else:
-                return timestamp
-        items_data = []
-
+    def get_json(self, url, **params):
+        self.params.update(params)
         response = json.loads(requests.get(
-            config.URL,headers=config.headers, params=self.params).content)
+            url,headers=config.HEADERS, params=self.params, verify=False).content)
+        return response
 
-        items_data.extend(response['data']['list'])
-        pageCount = response['data']['pagingDto']['pageCount']
+    def format_data(self, json_data):
+
+        def _clean_data(json_data):
+            """Удаляет ненужные данные"""
+            for item in json_data:
+                list(map(item.pop, set(item.keys()) - config.need_keys))
+                item['method'] = item['method']['name']
+                item['titleName'] = html.unescape(item['titleName'])
+                for customer in item['customers']:
+                    del customer['id'], customer['anyFieldNull']
+
+        def _unicode_time_convert(json_data):
+            def time_format(timestamp, tz_info):
+                if timestamp:
+                    ts = int(timestamp)/1000
+                    date = datetime.utcfromtimestamp(ts)
+                    date = pytz.timezone("UTC").localize(date)
+                    if tz_info:
+                        tz = pytz.timezone(tz_info)
+                        date = date.astimezone(tz)
+                    else:
+                        tz = pytz.timezone('Europe/Moscow')
+                        date = date.astimezone(tz)
+
+                    return date.strftime('%d-%m-%Y %H:%M:%S')
+
+                else:
+                    return timestamp
+
+            for item in json_data:
+                for key in item:
+                    if key in config.date_time_keys:
+                        item[key] = time_format(item[key], item['timeZoneAbbrev'])
+
+        _clean_data(json_data)
+        _unicode_time_convert(json_data)
+
+        return json_data
+
+    def get_purchases_list(self):
+        url = config.HOST + config.SEARCH_URL
+        json_data = self.get_json(url)
+        items_data = json_data['data']['list']
+        pageCount = json_data['data']['pagingDto']['pageCount']
+
         if pageCount > 1:
             page = 2
             while page <= pageCount:
-                self.params['pageNumber'] = page
-                response = json.loads(requests.get(
-                                config.URL,headers=config.headers, params=self.params).content)
-                items_data.extend(response['data']['list'])
-                # print(response['data']['pagingDto'])
+                json_data = get_json(url, pageNumber=page)
+                items_data.extend(json_data['data']['list'])
                 page += 1
-
-        date_time_keys = ('createDate', 'createDateAsTimestamp',
-                          'createDateMob', 'tillDate', 'updateDate',
-                          'updateDateAsTimestamp', 'updateDateMob')
-
-        for key in date_time_keys:
-            for item in items_data:
-                item[key] = _unicode_time_convert(item[key])
-
-        return items_data
-
-    def get_purchase_info(self):
-        pass 
+        return self.format_data(items_data)
 
     def get_protocol_info(self):
         pass
@@ -55,17 +78,24 @@ class parse_api():
 if __name__ == "__main__":
     from pprint import pprint as pp
     import pandas
-    krym_30kk = {"af": "on",
-                 "pc": "on",
-                 "delKladrIds": "8408974",
-                 "publishDateFrom": "01.12.2020",
-                 "priceFromGeneral": "3000000"}
 
-    krym_params = dict(config.params)
-    krym_params.update(krym_30kk)
-    krym = parse_api(krym_params)
-    purc_list = krym.get_json()
-    # pp(len(purc_list))
+    krym_sevas_30kk = parse_api({"af": "on",
+                                 "pa": "on",
+                                 "pc": "on",
+                                 "ca": "on",
+                                 "delKladrIds": "8408974, 8408975",
+                                 "updateDateFrom": "01.12.2020",
+                                 "priceFromGeneral": 30000000})
 
-    df = pandas.DataFrame(purc_list)
-    df.to_excel('test.xlsx')
+    sev_gu = parse_api({"af": "on",
+                        "pa": "on", 
+                        "pc": "on",
+                        "ca": "on",
+                        "customerInn": "9201012877",
+                        "updateDateFrom": "01.12.2020"})
+
+    krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_purchases_list())
+    sev_gu_df = pandas.DataFrame(sev_gu.get_purchases_list())
+    krym_sevas_df.to_excel('k_test.xlsx')
+    sev_gu_df.to_excel('sev_gu_test.xlsx')
+
