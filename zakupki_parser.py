@@ -12,15 +12,15 @@ class parse_api():
         self.params.update(params)
 
     def get_json(self, url, **params):
-        self.params.update(params)
         ch = True
         while ch:
             try:
                 response = json.loads(requests.get(
-                    url,headers=config.HEADERS, params=self.params, verify=False).content)
+                    url,headers=config.HEADERS, params=params, verify=False).content)
                 ch = False
             except requests.exceptions.ConnectionError as e:
                 print(e)
+
         return response
 
     def format_data(self, json_data):
@@ -28,7 +28,8 @@ class parse_api():
         def _clean_data(json_data):
             """Удаляет ненужные данные"""
             for item in json_data:
-                item['method'] = item['method']['name']
+                if item['method']:
+                    item['method'] = item['method']['name']
                 item['titleName'] = re.sub(r'\s{2}', ' ', html.unescape(item['titleName']))
                 list(map(item.pop, set(item.keys()) - config.need_keys))
 
@@ -61,21 +62,26 @@ class parse_api():
         return json_data
 
     def get_purchases_list(self):
-        json_data = self.get_json(config.SEARCH_URL)
+        self.params['pageNumber'] = 1
+        json_data = self.get_json(config.SEARCH_URL, **self.params)
         items_data = json_data['data']['list']
         pageCount = json_data['data']['pagingDto']['pageCount']
 
         if pageCount > 1:
             page = 2
             while page <= pageCount:
-                json_data = get_json(url, pageNumber=page)
+                self.params['pageNumber'] = page
+                json_data = self.get_json(config.SEARCH_URL, **self.params)
                 items_data.extend(json_data['data']['list'])
                 page += 1
+
         self.purchases_list = self.format_data(items_data)
         for purchase in self.purchases_list:
             if '44' in purchase['provider']:
+                print('1')
                 purch_info = self.get_purchase_info(purchase['number'], purchase['provider'], purchase['methodType'])
                 purchase.update(self.format_purchase_info_44(purch_info))
+                print('OK')
             
         return self.purchases_list
 
@@ -84,16 +90,17 @@ class parse_api():
             print(purchase_numb)
             return self.get_json(config.PURCHASE_URLS['223'], regNumber=purchase_numb)['data']
         url = config.PURCHASE_URLS['44'].format(methodType.lower())
-        print(url, purchase_numb)
         purch_info = self.get_json(url, regNumber=purchase_numb)['data']['dto']
         return purch_info
-        
+
     def format_purchase_info_44(self, json_data):
         if json_data:
             purchase_info = {
             'complaints': json_data['headerBlock']['complaintsDto']['complaintNumber'],
             'ensuringPurchase' : json_data['customerRequirementsBlock'][0]['ensuringPurchase']['amountEnforcement'],
-            'ensuringPerformanceContrac' : json_data['customerRequirementsBlock'][0]['ensuringPerformanceContract']['amountContractEnforcement']
+            'ensuringPerformanceContrac' : json_data['customerRequirementsBlock'][0]['ensuringPerformanceContract']['amountContractEnforcement'],
+            'contractGrntShare':json_data['customerRequirementsBlock'][0]['ensuringPerformanceContract']['contractGrntShare'],
+            'warrantyObligationsSize':json_data['customerRequirementsBlock'][0]['warrantyObligations']['warrantyObligationsSize']
             }
             return purchase_info
 
@@ -108,7 +115,7 @@ if __name__ == "__main__":
                                  "ca": "on",
                                  "delKladrIds": "8408974, 8408975",
                                  "updateDateFrom": "01.12.2020",
-                                 "priceFromGeneral": 30000000})
+                                 "priceFromGeneral": 3000000})
 
     sev_gu = parse_api({"af": "on",
                         "pa": "on", 
