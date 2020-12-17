@@ -2,6 +2,7 @@ import requests, json, html, urllib3
 from datetime import datetime
 import pytz, re
 from bs4 import BeautifulSoup as bs
+import time
 import config
 
 urllib3.disable_warnings()
@@ -20,7 +21,7 @@ class parse_api():
                 ch = False
             except requests.exceptions.ConnectionError as e:
                 print(e)
-
+                time.sleep(10)
         return response
 
     def format_data(self, json_data):
@@ -31,6 +32,10 @@ class parse_api():
                 if item['method']:
                     item['method'] = item['method']['name']
                 item['titleName'] = re.sub(r'\s{2}', ' ', html.unescape(item['titleName']))
+                for lot in item['lotItems']:
+                    list(map(lot.pop, set(lot.keys()-{'firstPrice', 'id', 'name', 'number'})))
+
+
                 list(map(item.pop, set(item.keys()) - config.need_keys))
 
         def _unicode_time_convert(json_data):
@@ -77,32 +82,41 @@ class parse_api():
 
         self.purchases_list = self.format_data(items_data)
         for purchase in self.purchases_list:
-            if '44' in purchase['provider']:
-                print('1')
-                purch_info = self.get_purchase_info(purchase['number'], purchase['provider'], purchase['methodType'])
-                purchase.update(self.format_purchase_info_44(purch_info))
-                print('OK')
-            
+            purch_info = self.get_purchase_info(purchase['number'], purchase['provider'], purchase['methodType'])
+            purchase.update(purch_info)
         return self.purchases_list
 
     def get_purchase_info(self, purchase_numb, provider, methodType):
-        if provider == 'FZ223':
-            print(purchase_numb)
-            return self.get_json(config.PURCHASE_URLS['223'], regNumber=purchase_numb)['data']
-        url = config.PURCHASE_URLS['44'].format(methodType.lower())
-        purch_info = self.get_json(url, regNumber=purchase_numb)['data']['dto']
-        return purch_info
 
-    def format_purchase_info_44(self, json_data):
-        if json_data:
-            purchase_info = {
-            'complaints': json_data['headerBlock']['complaintsDto']['complaintNumber'],
-            'ensuringPurchase' : json_data['customerRequirementsBlock'][0]['ensuringPurchase']['amountEnforcement'],
-            'ensuringPerformanceContrac' : json_data['customerRequirementsBlock'][0]['ensuringPerformanceContract']['amountContractEnforcement'],
-            'contractGrntShare':json_data['customerRequirementsBlock'][0]['ensuringPerformanceContract']['contractGrntShare'],
-            'warrantyObligationsSize':json_data['customerRequirementsBlock'][0]['warrantyObligations']['warrantyObligationsSize']
-            }
+        if '223' in provider:
+            purch_info = self.get_json(config.PURCHASE_URLS['223'], regNumber=purchase_numb)['data']
+            purchase_info = {'customers':[{'inn': purch_info['noticeInfo']['customerInn'],
+                                           'name': purch_info['noticeInfo']['customerName']}]
+                             }
             return purchase_info
+
+        if '615' in provider:
+            url = config.PURCHASE_URLS['615'].format(methodType.lower())
+            purch_info = self.get_json(url, regNumber=purchase_numb)['data']['dto']
+            purchase_info = {
+                    'complaints': purch_info['headerBlock']['complaintsDto']['complaintNumber'],
+                    'ensuringPurchase' : purch_info['conditionsContract']['amountCollateralEA'],
+                    'ensuringPerformanceContrac' : purch_info['conditionsContract']['amountCollateralContract']
+                    }
+
+            return purchase_info
+        if '44' in provider:
+            url = config.PURCHASE_URLS['44'].format(methodType.lower())
+            purch_info = self.get_json(url, regNumber=purchase_numb)['data']['dto']
+            purchase_info = {
+                    'complaints': purch_info['headerBlock']['complaintsDto']['complaintNumber'],
+                    'ensuringPurchase' : purch_info['customerRequirementsBlock'][0]['ensuringPurchase']['amountEnforcement'],
+                    'ensuringPerformanceContrac' : purch_info['customerRequirementsBlock'][0]['ensuringPerformanceContract']['amountContractEnforcement'],
+                    'contractGrntShare':purch_info['customerRequirementsBlock'][0]['ensuringPerformanceContract']['contractGrntShare'],
+                    'warrantyObligationsSize':purch_info['customerRequirementsBlock'][0]['warrantyObligations']['warrantyObligationsSize']
+                    }
+            return purchase_info
+
 
 
 if __name__ == "__main__":
@@ -113,9 +127,12 @@ if __name__ == "__main__":
                                  "pa": "on",
                                  "pc": "on",
                                  "ca": "on",
+                                 "fz44": "on", 
+                                 "fz223": "on", 
+                                 "ppRf615": "on",
                                  "delKladrIds": "8408974, 8408975",
-                                 "updateDateFrom": "01.12.2020",
-                                 "priceFromGeneral": 3000000})
+                                 "updateDateFrom": "10.12.2020",
+                                 "priceFromGeneral": 30000000})
 
     sev_gu = parse_api({"af": "on",
                         "pa": "on", 
@@ -125,9 +142,7 @@ if __name__ == "__main__":
                         "updateDateFrom": "01.12.2020"})
 
     krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_purchases_list())
-    sev_gu_df = pandas.DataFrame(sev_gu.get_purchases_list())
+    # sev_gu_df = pandas.DataFrame(sev_gu.get_purchases_list())
     krym_sevas_df.to_excel('k_test.xlsx')
-    sev_gu_df.to_excel('sev_gu_test.xlsx')
-    # krym_sevas_30kk.get_purchases_list()
-    # pp(krym_sevas_30kk.purchases_list)
+    # sev_gu_df.to_excel('sev_gu_test.xlsx')
 

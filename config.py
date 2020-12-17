@@ -67,14 +67,12 @@ HOST = 'https://zakupki.gov.ru/api/mobile/proxy/917/'
 SEARCH_URL = HOST + 'epz/order/extendedsearch/results.html'
 
 PURCHASE_URLS = {'223': HOST + '223/purchase/public/purchase/info/common-info.html',
-				 '44': HOST + 'epz/order/notice/{}/view/common-info.html'}
+				 '44': HOST + 'epz/order/notice/{}/view/common-info.html',
+         '615': HOST + 'epz/order/notice/{}/view/common-info.html'}
 
 HEADERS = {'User-Agent': 'okhttp/3.12.1'}
 
-PARAMS = {"fz44": "on", 
-          "fz223": "on", 
-          "ppRf615": "on", 
-          "sortBy": "UPDATE_DATE", 
+PARAMS = {"sortBy": "UPDATE_DATE", 
           "recordsPerPage": '_100',  
           "pageNumber": "1"}
 
@@ -82,7 +80,8 @@ PARAMS = {"fz44": "on",
 # Форматирование данных
 
 need_keys = {'createDate', 'method', 'methodType', 'number', 'price', 'provider', 
-             'stagetStr', 'tillDate', 'titleName', 'updateDate', 'stage', 'customers', 'organization'}
+             'stagetStr', 'tillDate', 'titleName', 'updateDate', 'stage', 'customers', 'organization', 'lotItems',
+ 'lotItemsTotal'}
 
 date_time_keys = {'createDate', 'createDateAsTimestamp',
                   'createDateMob', 'tillDate', 'updateDate',
