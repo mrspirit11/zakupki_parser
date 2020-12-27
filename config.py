@@ -70,6 +70,9 @@ PURCHASE_URLS = {'223': HOST + '223/purchase/public/purchase/info/common-info.ht
 				 '44': HOST + 'epz/order/notice/{}/view/common-info.html',
          '615': HOST + 'epz/order/notice/{}/view/common-info.html'}
 
+PROTOCOL_URLS = {'44': HOST + 'epz/order/notice/{}/view/supplier-results.html',
+                  '615': HOST + 'epz/order/notice/{}/view/supplier-results.html'}
+
 HEADERS = {'User-Agent': 'okhttp/3.12.1'}
 
 PARAMS = {"sortBy": "UPDATE_DATE", 

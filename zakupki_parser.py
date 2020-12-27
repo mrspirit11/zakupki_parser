@@ -1,5 +1,5 @@
 import requests, json, html, urllib3
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz, re
 from bs4 import BeautifulSoup as bs
 import time
@@ -10,31 +10,42 @@ urllib3.disable_warnings()
 class parse_api():
     def __init__(self, params):
         self.params = dict(config.PARAMS)
+        if "updateDateFrom" not in params.keys():
+            params["updateDateFrom"] = self.get_date_from()
         self.params.update(params)
 
     def get_json(self, url, **params):
         ch = True
         while ch:
             try:
-                response = json.loads(requests.get(
-                    url,headers=config.HEADERS, params=params, verify=False).content)
+                response = requests.get(url,
+                                        headers=config.HEADERS, 
+                                        params=params, 
+                                        verify=False)
+                print(response.url)
+                resp_json = json.loads(response.content)
                 ch = False
             except requests.exceptions.ConnectionError as e:
                 print(e)
                 time.sleep(10)
-        return response
+        return resp_json
 
     def format_data(self, json_data):
 
         def _clean_data(json_data):
             """Удаляет ненужные данные"""
             for item in json_data:
+
                 if item['method']:
                     item['method'] = item['method']['name']
+
                 item['titleName'] = re.sub(r'\s{2}', ' ', html.unescape(item['titleName']))
+
                 for lot in item['lotItems']:
                     list(map(lot.pop, set(lot.keys()-{'firstPrice', 'id', 'name', 'number'})))
 
+                if not item['price']:
+                    item['price'] = sum([i['firstPrice'] for i in item['lotItems']])
 
                 list(map(item.pop, set(item.keys()) - config.need_keys))
 
@@ -79,11 +90,17 @@ class parse_api():
                 json_data = self.get_json(config.SEARCH_URL, **self.params)
                 items_data.extend(json_data['data']['list'])
                 page += 1
-
         self.purchases_list = self.format_data(items_data)
+
+        len_purch_list = len(self.purchases_list)
+
         for purchase in self.purchases_list:
+            print(len_purch_list, end=', ')
             purch_info = self.get_purchase_info(purchase['number'], purchase['provider'], purchase['methodType'])
             purchase.update(purch_info)
+            len_purch_list -= 1
+            
+
         return self.purchases_list
 
     def get_purchase_info(self, purchase_numb, provider, methodType):
@@ -115,7 +132,34 @@ class parse_api():
                     'contractGrntShare':purch_info['customerRequirementsBlock'][0]['ensuringPerformanceContract']['contractGrntShare'],
                     'warrantyObligationsSize':purch_info['customerRequirementsBlock'][0]['warrantyObligations']['warrantyObligationsSize']
                     }
+            try:
+                prot_url = config.PROTOCOL_URLS['44'].format(methodType.lower())
+                prot_info = self.get_json(prot_url, regNumber=purchase_numb)['data']['dto']
+                for prot in prot_info['protocolResultCommonBlock'][0]['protocolResults']:
+                    if 0 < len(prot['reason']) < 20:
+                        purchase_info[prot['reason'][4:]] = prot['partiicipantName']
+                        purchase_info[prot['reason'][4:]+' предл'] = prot['offerPrice']
+                    else:
+                        if prot['reason']:
+                            purchase_info['reason'] = prot['reason']
+                        if prot['partiicipantName']:
+                            purchase_info['Победитель'] = prot['partiicipantName']
+                        purchase_info['Победитель предл'] = prot['offerPrice']
+
+            except:
+                pass
             return purchase_info
+
+    def get_date_from(self):
+        date_format = "%d.%m.%Y"
+        today = datetime.now()
+
+        if today.weekday() == 0:
+            date_from = today - timedelta(days=3)
+        else:
+            date_from = today - timedelta(days=1)
+
+        return date_from.strftime(date_format)
 
 
 
@@ -123,23 +167,24 @@ if __name__ == "__main__":
     from pprint import pprint as pp
     import pandas
 
-    krym_sevas_30kk = parse_api({"af": "on",
-                                 "pa": "on",
+    krym_sevas_30kk = parse_api({
+                                 # "af": "on",
+                                 # "pa": "on",
                                  "pc": "on",
-                                 "ca": "on",
+                                 # "ca": "on",
                                  "fz44": "on", 
-                                 "fz223": "on", 
+                                 # "fz223": "on", 
                                  "ppRf615": "on",
+                                 'updateDateFrom':'01.12.2020',
                                  "delKladrIds": "8408974, 8408975",
-                                 "updateDateFrom": "10.12.2020",
                                  "priceFromGeneral": 30000000})
 
     sev_gu = parse_api({"af": "on",
                         "pa": "on", 
                         "pc": "on",
                         "ca": "on",
-                        "customerInn": "9201012877",
-                        "updateDateFrom": "01.12.2020"})
+                        'updateDateFrom':'23.12.2020',
+                        "customerInn": "9201012877"})
 
     krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_purchases_list())
     # sev_gu_df = pandas.DataFrame(sev_gu.get_purchases_list())
