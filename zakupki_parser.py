@@ -90,21 +90,29 @@ class parse_api():
                 json_data = self.get_json(config.SEARCH_URL, **self.params)
                 items_data.extend(json_data['data']['list'])
                 page += 1
-        self.purchases_list = self.format_data(items_data)
+        
+        return self.format_data(items_data)
 
-        len_purch_list = len(self.purchases_list)
+    def get_full_data(self, purchases_list_to_clean=[]):
+        """Собираем недостающую инфу по закупкам и возвращаем всю инфу в виде списка"""
 
-        for purchase in self.purchases_list:
+        if not purchases_list_to_clean:
+            purchases_list = self.get_purchases_list()
+        else:
+            purchases_list = purchases_list_to_clean
+
+        len_purch_list = len(purchases_list)
+
+        for purchase in purchases_list:
             print(len_purch_list, end=', ')
-            purch_info = self.get_purchase_info(purchase['number'], purchase['provider'], purchase['methodType'])
+            purch_info = self.get_purchase_info(purchase['number'], purchase['provider'], purchase['methodType'], purchase['stage'])
             purchase.update(purch_info)
             len_purch_list -= 1
-            
+        return purchases_list
 
-        return self.purchases_list
 
-    def get_purchase_info(self, purchase_numb, provider, methodType):
-
+    def get_purchase_info(self, purchase_numb, provider, methodType, stage):
+        """Собираем недостающую инфу по закупке"""
         if '223' in provider:
             purch_info = self.get_json(config.PURCHASE_URLS['223'], regNumber=purchase_numb)['data']
             purchase_info = {'customers':[{'inn': purch_info['noticeInfo']['customerInn'],
@@ -132,7 +140,8 @@ class parse_api():
                     'contractGrntShare':purch_info['customerRequirementsBlock'][0]['ensuringPerformanceContract']['contractGrntShare'],
                     'warrantyObligationsSize':purch_info['customerRequirementsBlock'][0]['warrantyObligations']['warrantyObligationsSize']
                     }
-            try:
+            if stage in ('CA', 'PC', 'NC'):
+                """Парсим протоколы"""
                 prot_url = config.PROTOCOL_URLS['44'].format(methodType.lower())
                 prot_info = self.get_json(prot_url, regNumber=purchase_numb)['data']['dto']
                 for prot in prot_info['protocolResultCommonBlock'][0]['protocolResults']:
@@ -145,9 +154,6 @@ class parse_api():
                         if prot['partiicipantName']:
                             purchase_info['Победитель'] = prot['partiicipantName']
                         purchase_info['Победитель предл'] = prot['offerPrice']
-
-            except:
-                pass
             return purchase_info
 
     def get_date_from(self):
@@ -168,14 +174,14 @@ if __name__ == "__main__":
     import pandas
 
     krym_sevas_30kk = parse_api({
-                                 # "af": "on",
-                                 # "pa": "on",
+                                 "af": "on",
+                                 "pa": "on",
                                  "pc": "on",
-                                 # "ca": "on",
+                                 "ca": "on",
                                  "fz44": "on", 
                                  # "fz223": "on", 
                                  "ppRf615": "on",
-                                 'updateDateFrom':'01.12.2020',
+                                 'updateDateFrom':'25.12.2020',
                                  "delKladrIds": "8408974, 8408975",
                                  "priceFromGeneral": 30000000})
 
@@ -186,7 +192,7 @@ if __name__ == "__main__":
                         'updateDateFrom':'23.12.2020',
                         "customerInn": "9201012877"})
 
-    krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_purchases_list())
+    krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_full_data())
     # sev_gu_df = pandas.DataFrame(sev_gu.get_purchases_list())
     krym_sevas_df.to_excel('k_test.xlsx')
     # sev_gu_df.to_excel('sev_gu_test.xlsx')
