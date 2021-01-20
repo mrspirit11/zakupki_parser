@@ -142,18 +142,23 @@ class parse_api():
                     }
             if stage in ('CA', 'PC', 'NC'):
                 """Парсим протоколы"""
-                prot_url = config.PROTOCOL_URLS['44'].format(methodType.lower())
-                prot_info = self.get_json(prot_url, regNumber=purchase_numb)['data']['dto']
-                for prot in prot_info['protocolResultCommonBlock'][0]['protocolResults']:
-                    if 0 < len(prot['reason']) < 20:
-                        purchase_info[prot['reason'][4:]] = prot['partiicipantName']
-                        purchase_info[prot['reason'][4:]+' предл'] = prot['offerPrice']
-                    else:
-                        if prot['reason']:
-                            purchase_info['reason'] = prot['reason']
-                        if prot['partiicipantName']:
-                            purchase_info['Победитель'] = prot['partiicipantName']
-                        purchase_info['Победитель предл'] = prot['offerPrice']
+                try:
+                    prot_url = config.PROTOCOL_URLS['44'].format(methodType.lower())
+                    prot_info = self.get_json(prot_url, regNumber=purchase_numb)['data']['dto']
+                    for participant in prot_info['protocolResultCommonBlock'][0]['supplierDefResultParticipantTable']['participantList']:
+                        if 'По ' in participant['orderNum']:
+                            purchase_info['коммент'] = participant['orderNum']
+                            participant['orderNum'] = "1 - Победитель"
+                        if not participant['orderNum']:
+                            participant['orderNum'] = "1 - Победитель"
+                        try:
+                            purchase_info[participant['orderNum']] = participant['name']
+                            purchase_info[f"{participant['orderNum']} - предл"] = float(participant['offerPrice'].translate({ord(','): ord('.'),ord(' '): None}))
+                        except Exception as e:
+                            print(e)
+                except Exception as e:
+                    print(e)
+
             return purchase_info
 
     def get_date_from(self):
@@ -189,7 +194,7 @@ if __name__ == "__main__":
                         "pa": "on", 
                         "pc": "on",
                         "ca": "on",
-                        'updateDateFrom':'23.12.2020',
+                        'updateDateFrom':'11.01.2021',
                         "customerInn": "9201012877"})
 
     krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_full_data())
