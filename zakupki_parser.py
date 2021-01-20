@@ -154,8 +154,8 @@ class parse_api():
                         try:
                             purchase_info[participant['orderNum']] = participant['name']
                             purchase_info[f"{participant['orderNum']} - предл"] = float(participant['offerPrice'].translate({ord(','): ord('.'),ord(' '): None}))
-                        except Exception as e:
-                            print(e)
+                        except:
+                            pass
                 except Exception as e:
                     print(e)
 
