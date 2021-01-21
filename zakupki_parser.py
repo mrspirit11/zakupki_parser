@@ -173,6 +173,28 @@ class parse_api():
         return date_from.strftime(date_format)
 
 
+def to_html(purchase_list):
+    html_text = config.HTML_START
+    purh_url = "https://zakupki.gov.ru/epz/order/extendedsearch/results.html?searchString="
+    for purch in purchase_list:
+        if not purch['price']:
+            purch['price'] = 0
+        if not purch['ensuringPurchase']:
+            purch['ensuringPurchase'] = 0
+        if not purch['ensuringPerformanceContrac']:
+            purch['ensuringPerformanceContrac'] = 0
+        if not purch['warrantyObligationsSize']:
+            purch['warrantyObligationsSize'] = 0
+        html_text += config.HTML_TEXT.format(**purch, href = purh_url + purch['number'])
+        if '1 - Победитель' in purch:
+            html_text += config.HTML_WIN.format(**purch)
+        if 'коммент' in purch:
+            html_text += config.HTML_COMM.format(**purch)
+        if purch['complaints']:
+            html_text += config.HTML_COMPL.format(**purch)
+        html_text += f'<p style="text-align: center;">{"*"*50}</p>'
+    return html_text + config.HTML_END
+
 
 if __name__ == "__main__":
     from pprint import pprint as pp
@@ -186,7 +208,7 @@ if __name__ == "__main__":
                                  "fz44": "on", 
                                  # "fz223": "on", 
                                  "ppRf615": "on",
-                                 'updateDateFrom':'25.12.2020',
+                                 'updateDateFrom':'15.01.2021',
                                  "delKladrIds": "8408974, 8408975",
                                  "priceFromGeneral": 30000000})
 
@@ -197,8 +219,11 @@ if __name__ == "__main__":
                         'updateDateFrom':'11.01.2021',
                         "customerInn": "9201012877"})
 
-    krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_full_data())
+    # krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_full_data())
     # sev_gu_df = pandas.DataFrame(sev_gu.get_purchases_list())
-    krym_sevas_df.to_excel('k_test.xlsx')
+    # krym_sevas_df.to_excel('k_test.xlsx')
     # sev_gu_df.to_excel('sev_gu_test.xlsx')
+    # pp(to_html(krym_sevas_30kk.get_full_data()))
+    with open('krym_sevas.html', 'w') as f_out:
+        f_out.write(to_html(krym_sevas_30kk.get_full_data()))
 
