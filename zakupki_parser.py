@@ -1,8 +1,7 @@
 import requests, json, html, urllib3
 from datetime import datetime, timedelta
-import pytz, re
+import time, pytz, re
 from bs4 import BeautifulSoup as bs
-import time
 import config
 
 urllib3.disable_warnings()
