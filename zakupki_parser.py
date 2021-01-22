@@ -161,54 +161,54 @@ class parse_api():
 
             return purchase_info
 
-    def get_date_from(self):
-        date_format = "%d.%m.%Y"
-        today = datetime.now()
-
-        if today.weekday() == 0:
-            date_from = today - timedelta(days=3)
-        else:
-            date_from = today - timedelta(days=1)
-
-        return date_from.strftime(date_format)
-
 
 def to_html(purchase_list):
     html_text = config.HTML_START
     purh_url = "https://zakupki.gov.ru/epz/order/extendedsearch/results.html?searchString="
     for purch in purchase_list:
-        if not purch['price']:
+        if not purch.get('price'):
             purch['price'] = 0
-        if not purch['ensuringPurchase']:
+        if not purch.get('ensuringPurchase'):
             purch['ensuringPurchase'] = 0
-        if not purch['ensuringPerformanceContrac']:
+        if not purch.get('ensuringPerformanceContrac'):
             purch['ensuringPerformanceContrac'] = 0
-        if not purch['warrantyObligationsSize']:
+        if not purch.get('warrantyObligationsSize'):
             purch['warrantyObligationsSize'] = 0
+        if not purch.get('contractGrntShare'):
+            purch['contractGrntShare'] = 0
         html_text += config.HTML_TEXT.format(**purch, href = purh_url + purch['number'])
         if '1 - Победитель' in purch:
             html_text += config.HTML_WIN.format(**purch)
         if 'коммент' in purch:
             html_text += config.HTML_COMM.format(**purch)
-        if purch['complaints']:
-            html_text += config.HTML_COMPL.format(**purch)
-        html_text += f'<p style="text-align: center;">{"*"*50}</p>'
+        if purch.get('complaints'):
+            html_text += config.HTML_COMPL.format(**purch, href='https://zakupki.gov.ru/epz/complaint/search/results.html?searchString=' + purch['complaints'])
+        html_text += '</div>'
     return html_text + config.HTML_END
 
+def get_date_from():
+    date_format = "%d.%m.%Y"
+    today = datetime.now()
+
+    if today.weekday() == 0:
+        date_from = today - timedelta(days=3)
+    else:
+        date_from = today - timedelta(days=1)
+
+    return date_from.strftime(date_format)
 
 if __name__ == "__main__":
     from pprint import pprint as pp
     import pandas
 
-    krym_sevas_30kk = parse_api({
-                                 "af": "on",
+    krym_sevas_30kk = parse_api({"af": "on",
                                  "pa": "on",
                                  "pc": "on",
                                  "ca": "on",
                                  "fz44": "on", 
-                                 # "fz223": "on", 
+                                 "fz223": "on", 
                                  "ppRf615": "on",
-                                 'updateDateFrom':'15.01.2021',
+                                 'updateDateFrom':get_date_from(),
                                  "delKladrIds": "8408974, 8408975",
                                  "priceFromGeneral": 30000000})
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
                         "pa": "on", 
                         "pc": "on",
                         "ca": "on",
-                        'updateDateFrom':'11.01.2021',
+                        'updateDateFrom':get_date_from(),
                         "customerInn": "9201012877"})
 
     # krym_sevas_df = pandas.DataFrame(krym_sevas_30kk.get_full_data())
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     # krym_sevas_df.to_excel('k_test.xlsx')
     # sev_gu_df.to_excel('sev_gu_test.xlsx')
     # pp(to_html(krym_sevas_30kk.get_full_data()))
+    out_list = krym_sevas_30kk.get_full_data() + sev_gu.get_full_data()
     with open('krym_sevas.html', 'w') as f_out:
-        f_out.write(to_html(krym_sevas_30kk.get_full_data()))
+        f_out.write(to_html(out_list))
 
