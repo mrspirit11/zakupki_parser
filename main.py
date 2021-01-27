@@ -31,3 +31,5 @@ with open('krym_sevas.html', 'w') as f_out:
 rkgovru_parser.download_all_pdf(rkgovru_parser.get_doc_list(1))
 with open('test_rk.html', 'w') as f_out:
     f_out.write(rkgovru_parser.to_html(rkgovru_parser.get_text_from_pdf()))
+
+import ed_sevas
