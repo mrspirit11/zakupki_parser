@@ -10,12 +10,12 @@ import re
 # from_date = '14.01.2021'
 def get_date_from():
     date_format = "%d.%m.%Y"
-    today = datetime.now()
+    today = datetime.datetime.now()
 
     if today.weekday() == 0:
-        date_from = today - timedelta(days=3)
+        date_from = today - datetime.timedelta(days=3)
     else:
-        date_from = today - timedelta(days=1)
+        date_from = today - datetime.timedelta(days=1)
 
     return date_from.strftime(date_format)
 

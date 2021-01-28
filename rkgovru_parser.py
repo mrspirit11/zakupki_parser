@@ -15,7 +15,7 @@ def get_doc_list(pages=2):
     def get_html(page):
         url = 'https://rk.gov.ru/ru/documents/search'
         params = {'query':'Об определении единственного',
-                  'dateFrom':'01.01.2020',
+                  'dateFrom':'01.01.2021',
                   'page':page}
         return requests.get(url, params).text
 
