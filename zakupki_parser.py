@@ -40,11 +40,12 @@ class parse_api():
 
                 item['titleName'] = re.sub(r'\s{2}', ' ', html.unescape(item['titleName']))
 
-                for lot in item['lotItems']:
-                    list(map(lot.pop, set(lot.keys()-{'firstPrice', 'id', 'name', 'number'})))
+                if item['lotItems']:
+                    for lot in item['lotItems']:
+                        list(map(lot.pop, set(lot.keys()-{'firstPrice', 'id', 'name', 'number'})))
 
-                if not item['price']:
-                    item['price'] = sum([i['firstPrice'] for i in item['lotItems']])
+                    if not item['price']:
+                        item['price'] = sum([i['firstPrice'] for i in item['lotItems']])
 
                 list(map(item.pop, set(item.keys()) - config.need_keys))
 

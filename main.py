@@ -27,9 +27,12 @@ out_list = krym_sevas_30kk.get_full_data() + sev_gu.get_full_data()
 
 with open('krym_sevas.html', 'w') as f_out:
     f_out.write(to_html(out_list))
+try:
+    rkgovru_parser.download_all_pdf(rkgovru_parser.get_doc_list(2))
 
-rkgovru_parser.download_all_pdf(rkgovru_parser.get_doc_list(2))
-with open('test_rk.html', 'w') as f_out:
-    f_out.write(rkgovru_parser.to_html(rkgovru_parser.get_text_from_pdf()))
+    with open('test_rk.html', 'w') as f_out:
+        f_out.write(rkgovru_parser.to_html(rkgovru_parser.get_text_from_pdf()))
+except:
+    pass
 
 import ed_sevas

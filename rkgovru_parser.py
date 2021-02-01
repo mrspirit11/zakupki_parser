@@ -2,7 +2,8 @@ from bs4 import BeautifulSoup as bs
 import requests
 from glob import glob
 import tika.parser as t_p
-import time, datetime
+import time
+from datetime import datetime, timedelta
 import re
 import tabula
 import os
@@ -13,9 +14,15 @@ def get_doc_list(pages=2):
     pages=1 (one page), pages='all', default pages=4 """
 
     def get_html(page):
+        def get_date_from(days=3):
+            date_format = "%d.%m.%Y"
+            today = datetime.now()
+            date_from = today - timedelta(days)
+            return date_from.strftime(date_format)
+
         url = 'https://rk.gov.ru/ru/documents/search'
         params = {'query':'Об определении единственного',
-                  'dateFrom':'01.01.2021',
+                  'dateFrom':get_date_from(5),
                   'page':page}
         return requests.get(url, params).text
 
