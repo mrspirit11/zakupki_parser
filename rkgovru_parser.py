@@ -9,11 +9,17 @@ import tabula
 import os
 import pandas
 
+HEADERS = {'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_0) \
+AppleWebKit/537.36 (KHTML, like Gecko) \
+Chrome/87.0.4280.60 YaBrowser/20.12.0.1065 \
+Yowser/2.5 Safari/537.36'}
+
+
 def get_doc_list(pages=2):
     """Return list of link to document from https://rk.gov.ru/
     pages=1 (one page), pages='all', default pages=4 """
 
-    def get_html(page):
+    def get_html(page=1):
         def get_date_from(days=3):
             date_format = "%d.%m.%Y"
             today = datetime.now()
@@ -24,7 +30,8 @@ def get_doc_list(pages=2):
         params = {'query':'Об определении единственного',
                   'dateFrom':get_date_from(5),
                   'page':page}
-        return requests.get(url, params).text
+        resp = requests.get(url, params, headers=HEADERS)
+        return resp.text
 
     def a_list(pages):
         doc_list = []
@@ -33,12 +40,16 @@ def get_doc_list(pages=2):
             doc_ul = soup.find('ul', class_='search-results')
             a_list = doc_ul.findAll('a')
             doc_list.extend([a['href'] for a in a_list])
+        print(doc_list)
         return doc_list
     
     if pages == 'all':
         soup = bs(get_html(), 'html.parser')
-        last_page_href = soup.find('li', class_='pagination__item_last').a['href']
-        last_page_numb = int(last_page_href.split('=')[-1])
+        try:
+            last_page_href = soup.find('li', class_='pagination__item_last').a['href']
+            last_page_numb = int(last_page_href.split('=')[-1])
+        except:
+            last_page_numb = 1
         return a_list(last_page_numb)
     else:
         return a_list(pages)
@@ -50,13 +61,13 @@ def download_all_pdf(link_list):
         if link in open('Downloads/downloads.txt', 'r').read():
             return False
         else:
-            open('Downloads/downloads.txt', 'a').write(f'{datetime.datetime.now()} - {link}\n')
+            open('Downloads/downloads.txt', 'a').write(f'{datetime.now()} - {link}\n')
             return True
 
     def download_pdf(link):
         url = 'https://rk.gov.ru'
         try:
-            html_resp = requests.get(link)
+            html_resp = requests.get(link, headers=HEADERS)
             soup = bs(html_resp.text, 'html.parser')
             doc_info = soup.findAll('p')
             doc_name = doc_info[0].text.split()[-1].strip()
