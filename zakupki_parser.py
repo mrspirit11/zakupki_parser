@@ -18,7 +18,7 @@ class parse_api():
         while ch:
             try:
                 response = requests.get(url,
-                                        headers=config.HEADERS, 
+                                        headers=config.HEADERS_MOBILE, 
                                         params=params, 
                                         verify=False)
                 print(response.url)

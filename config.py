@@ -11,7 +11,8 @@ PURCHASE_URLS = {'223': HOST + '223/purchase/public/purchase/info/common-info.ht
 PROTOCOL_URLS = {'44': HOST + 'epz/order/notice/{}/view/supplier-results.html',
                  '615': HOST + 'epz/order/notice/{}/view/supplier-results.html'}
 
-HEADERS = {'User-Agent': 'okhttp/3.12.1'}
+HEADERS_MOBILE = {'User-Agent': 'okhttp/3.12.1'}
+HEADERS = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 YaBrowser/20.9.3.136 Yowser/2.5 Safari/537.36'}
 
 PARAMS = {"sortBy": "UPDATE_DATE", 
           "recordsPerPage": '_100',  

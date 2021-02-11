@@ -154,7 +154,7 @@ def to_html(data_list):
         </head>
 
         <body>"""
-    end_html = """<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    end_html = """<div class="container"></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.3/js/bootstrap.bundle.min.js"></script></body></html>"""
     html = ''
     for data in data_list:
