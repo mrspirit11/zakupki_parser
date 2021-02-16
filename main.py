@@ -26,14 +26,14 @@ out_list = krym_sevas_30kk.get_full_data() + sev_gu.get_full_data()
 # df = pandas.DataFrame(out_list)
 # df.to_excel(f'{get_date_from()}.xlsx')
 
-with open('krym_sevas.html', 'w') as f_out:
+with open('/Users/evgenijkorovin/Desktop/Выгрузка/krym_sevas.html', 'w') as f_out:
     f_out.write(to_html(out_list))
 
 # Выгрузка ед поставщик Крым с rk.gov.ru
 try:
     rkgovru_parser.download_all_pdf(rkgovru_parser.get_doc_list('all'))
 
-    with open('rk_gov_ru.html', 'w') as f_out:
+    with open('/Users/evgenijkorovin/Desktop/Выгрузка/rk_gov_ru.html', 'w') as f_out:
         f_out.write(rkgovru_parser.to_html(rkgovru_parser.get_text_from_pdf()))
 except Exception as e:
     print(e)

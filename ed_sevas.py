@@ -121,7 +121,7 @@ def main():
                 {'*'*50}<br>"""
 
         if html:
-            with open('ed_sevas.html', 'w', encoding='UTF-8') as f_out:
+            with open('/Users/evgenijkorovin/Desktop/Выгрузка/ed_sevas.html', 'w', encoding='UTF-8') as f_out:
                 f_out.write(html)
     except: pass
 
