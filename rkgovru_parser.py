@@ -1,12 +1,9 @@
 from bs4 import BeautifulSoup as bs
-import requests
+import os, requests, re
 from glob import glob
 import tika.parser as t_p
-import time
+import tabula, time
 from datetime import datetime, timedelta
-import re
-import tabula
-import os
 import pandas
 
 HEADERS = {'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_0) \
